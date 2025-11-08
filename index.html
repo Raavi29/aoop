@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload & Download</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 15px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .file-input-label:hover {
+            background: #5568d3;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            color: #666;
+            font-size: 14px;
+            display: none;
+        }
+
+        .file-name.show {
+            display: block;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px 20px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #653a8a;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info p {
+            margin: 5px 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .file-id {
+            font-family: monospace;
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            word-break: break-all;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Upload & Download</h1>
+        
+        <!-- Upload Section -->
+        <div class="section">
+            <div class="section-title">Upload File</div>
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" name="file" required>
+                    <label for="fileInput" class="file-input-label">Choose File</label>
+                </div>
+                <div id="fileName" class="file-name"></div>
+                <button type="submit">Upload File</button>
+                <div id="uploadMessage" class="message"></div>
+                <div id="fileInfo" class="file-info">
+                    <p><strong>File ID:</strong></p>
+                    <div class="file-id" id="fileIdDisplay"></div>
+                    <p style="margin-top: 10px;"><strong>Save this ID to download the file later!</strong></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Download Section -->
+        <div class="section">
+            <div class="section-title">Download File</div>
+            <div class="input-group">
+                <input type="text" id="fileIdInput" placeholder="Enter File ID">
+            </div>
+            <button id="downloadBtn">Download File</button>
+            <div id="downloadMessage" class="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // File input change handler
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileName.textContent = `Selected: ${e.target.files[0].name}`;
+                fileName.classList.add('show');
+            } else {
+                fileName.classList.remove('show');
+            }
+        });
+
+        // Upload form handler
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadMessage = document.getElementById('uploadMessage');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileIdDisplay = document.getElementById('fileIdDisplay');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(uploadForm);
+            const uploadBtn = uploadForm.querySelector('button[type="submit"]');
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            uploadMessage.classList.remove('show', 'success', 'error');
+            fileInfo.classList.remove('show');
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    uploadMessage.textContent = `Success! ${data.message}`;
+                    uploadMessage.classList.add('show', 'success');
+                    
+                    fileIdDisplay.textContent = data.fileId;
+                    fileInfo.classList.add('show');
+                    
+                    // Reset form
+                    uploadForm.reset();
+                    fileName.classList.remove('show');
+                } else {
+                    uploadMessage.textContent = `Error: ${data.error}`;
+                    uploadMessage.classList.add('show', 'error');
+                }
+            } catch (error) {
+                uploadMessage.textContent = `Error: ${error.message}`;
+                uploadMessage.classList.add('show', 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload File';
+            }
+        });
+
+        // Download button handler
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileIdInput = document.getElementById('fileIdInput');
+        const downloadMessage = document.getElementById('downloadMessage');
+
+        downloadBtn.addEventListener('click', async () => {
+            const fileId = fileIdInput.value.trim();
+
+            if (!fileId) {
+                downloadMessage.textContent = 'Please enter a file ID';
+                downloadMessage.classList.add('show', 'error');
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Downloading...';
+            downloadMessage.classList.remove('show', 'success', 'error');
+
+            try {
+                // First, check if file exists
+                const checkResponse = await fetch(`/file/${fileId}`);
+                
+                if (!checkResponse.ok) {
+                    const errorData = await checkResponse.json();
+                    downloadMessage.textContent = `Error: ${errorData.error}`;
+                    downloadMessage.classList.add('show', 'error');
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download File';
+                    return;
+                }
+
+                // File exists, trigger download
+                window.location.href = `/download/${fileId}`;
+                
+                downloadMessage.textContent = 'Download started!';
+                downloadMessage.classList.add('show', 'success');
+                
+                // Clear input after a delay
+                setTimeout(() => {
+                    fileIdInput.value = '';
+                    downloadMessage.classList.remove('show');
+                }, 3000);
+
+            } catch (error) {
+                downloadMessage.textContent = `Error: ${error.message}`;
+                downloadMessage.classList.add('show', 'error');
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download File';
+            }
+        });
+
+        // Allow Enter key to trigger download
+        fileIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                downloadBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
+
